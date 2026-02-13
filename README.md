@@ -114,3 +114,7 @@ YouTube URL
   ▼
 출력.mp4
 ```
+
+## 라이선스
+
+MIT License. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
