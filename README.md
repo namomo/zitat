@@ -69,6 +69,7 @@ python zitat.py <youtube-url> [옵션]
 | `--font-size` | `22` | 자막 크기 |
 | `--whisper-bin` | `$WHISPER_BIN` 또는 `whisper-cli` | whisper-cli 바이너리 경로 |
 | `--whisper-model` | `$WHISPER_MODEL` | whisper 모델 파일 경로 (필수) |
+| `--no-review` | — | 자막 검수 단계 건너뛰기 |
 | `--keep-tmp` | — | 임시 파일 보존 (디버깅용) |
 
 ### 예시
@@ -93,19 +94,19 @@ python zitat.py "https://youtu.be/j190mwiVlwA" -t 30 --keep-tmp
 YouTube URL
   │
   ▼
-[1] yt-dlp 다운로드 (1024px 이하)
+[1] yt-dlp 다운로드 (1024px 이하, --download-sections로 구간 지정)
   │
   ▼
-[2] ffmpeg 구간 자르기 (-c copy)
+[2] ffmpeg 오디오 추출 (16kHz mono WAV)
   │
   ▼
-[3] ffmpeg 오디오 추출 (16kHz mono WAV)
+[3] whisper-cli 자막 생성 (SRT)
   │
   ▼
-[4] whisper-cli 자막 생성 (SRT)
+[4] claude CLI 자막 번역
   │
   ▼
-[5] claude CLI 자막 번역
+[5] $EDITOR 자막 검수 (--no-review로 건너뛰기)
   │
   ▼
 [6] ffmpeg 자막 입히기 (burn-in)

@@ -8,13 +8,14 @@ YouTube clip subtitle pipeline. Single file `zitat.py`, stdlib only, no external
 zitat.py          # Entire pipeline (stdlib only)
 ```
 
-## Pipeline (5 steps)
+## Pipeline (6 steps)
 
 1. `yt-dlp` — Download video (max 1024px width, `--download-sections` + `--force-keyframes-at-cuts` when start/duration specified)
 2. `ffmpeg` — Extract audio (16kHz mono WAV)
 3. `whisper-cli` — Transcribe to SRT
 4. `claude -p` — Translate subtitles (must filter out `CLAUDE_CODE_ENTRYPOINT` env var)
-5. `ffmpeg` — Burn subtitles (libass subtitles filter)
+5. `$EDITOR` — Human review of translated subtitles (`--no-review` to skip)
+6. `ffmpeg` — Burn subtitles (libass subtitles filter)
 
 ## Configuration
 

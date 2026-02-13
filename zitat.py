@@ -109,7 +109,7 @@ def parse_time(t):
 def step_download(url, tmpdir, start="0", duration=None):
     """Step 1: Download video from YouTube (with optional section cut)."""
     needs_clip = start != "0" or duration is not None
-    print("[1/5] Downloading video segment..." if needs_clip else "[1/5] Downloading video...")
+    print("[1/6] Downloading video segment..." if needs_clip else "[1/6] Downloading video...")
     output = os.path.join(tmpdir, "source.mp4")
     cmd = [
         "yt-dlp",
@@ -131,7 +131,7 @@ def step_download(url, tmpdir, start="0", duration=None):
 
 def step_audio(clip, tmpdir):
     """Step 2: Extract audio."""
-    print("[2/5] Extracting audio...")
+    print("[2/6] Extracting audio...")
     output = os.path.join(tmpdir, "audio.wav")
     run([
         "ffmpeg", "-y",
@@ -145,7 +145,7 @@ def step_audio(clip, tmpdir):
 
 def step_whisper(audio, tmpdir, whisper_bin, whisper_model):
     """Step 3: Generate subtitles with whisper."""
-    print("[3/5] Transcribing audio...")
+    print("[3/6] Transcribing audio...")
     output_stem = os.path.join(tmpdir, "audio")
     run([
         whisper_bin,
@@ -159,7 +159,7 @@ def step_whisper(audio, tmpdir, whisper_bin, whisper_model):
 
 def step_translate(srt_path, lang, tmpdir):
     """Step 4: Translate subtitles using claude CLI."""
-    print("[4/5] Translating subtitles...")
+    print("[4/6] Translating subtitles...")
     with open(srt_path, "r") as f:
         srt_content = f.read()
 
@@ -188,9 +188,17 @@ def step_translate(srt_path, lang, tmpdir):
     return output
 
 
+def step_review(srt_path):
+    """Step 5: Open translated subtitles for human review."""
+    print("[5/6] Reviewing subtitles...")
+    editor = os.environ.get("EDITOR", "vim")
+    print(f"  $ {editor} {srt_path}")
+    subprocess.run([editor, srt_path])
+
+
 def step_burn(clip, srt_path, output_path, font, font_size):
-    """Step 5: Burn subtitles into video."""
-    print("[5/5] Burning subtitles into video...")
+    """Step 6: Burn subtitles into video."""
+    print("[6/6] Burning subtitles into video...")
     escaped = escape_srt_path(srt_path)
     vf = f"subtitles={escaped}:force_style='FontName={font},FontSize={font_size}'"
     run([
@@ -218,6 +226,7 @@ def main():
     parser.add_argument("--font-size", default="22", help="Subtitle font size (default: 22)")
     parser.add_argument("--whisper-bin", default=None, help="Path to whisper-cli (default: $WHISPER_BIN or 'whisper-cli')")
     parser.add_argument("--whisper-model", default=None, help="Path to whisper model (default: $WHISPER_MODEL)")
+    parser.add_argument("--no-review", action="store_true", help="Skip subtitle review step")
     parser.add_argument("--keep-tmp", action="store_true", help="Keep temporary files")
 
     args = parser.parse_args()
@@ -244,6 +253,10 @@ def main():
         audio = step_audio(source, tmpdir)
         srt = step_whisper(audio, tmpdir, whisper_bin, whisper_model)
         translated = step_translate(srt, args.lang, tmpdir)
+        if not args.no_review:
+            step_review(translated)
+        else:
+            print("[5/6] Skipping subtitle review")
         step_burn(source, translated, output_path, args.font, args.font_size)
 
         print(f"\nDone! Output: {output_path}")
