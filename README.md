@@ -14,8 +14,15 @@ YouTube 영상의 특정 구간을 다운로드하고, 자막을 생성·번역�
 |------|-------------------|
 | **yt-dlp** | `brew install yt-dlp` |
 | **ffmpeg** | `brew install ffmpeg` |
+| **cmake** | `brew install cmake` |
 | **whisper.cpp** | 아래 참고 |
-| **Claude CLI** | `npm install -g @anthropic-ai/claude-code` |
+
+### uv 설정
+
+```bash
+uv venv
+uv sync 
+```
 
 ### whisper.cpp 설치
 
@@ -39,8 +46,10 @@ cp .env.example .env
 
 ```bash
 # .env
+# 실행경로를 맞춰야 함
 WHISPER_BIN=~/whisper.cpp/build/bin/whisper-cli
 WHISPER_MODEL=~/whisper.cpp/models/ggml-large-v3-turbo.bin
+GOOGLE_API_KEY=
 ```
 
 `--whisper-bin`, `--whisper-model` CLI 옵션이나 셸 환경변수로도 지정 가능합니다.
@@ -82,7 +91,7 @@ python zitat.py "https://youtu.be/j190mwiVlwA" -ss 0 -t 50 -o peter_test
 python zitat.py "https://youtu.be/j190mwiVlwA" -ss 1:30 -t 120 --lang Japanese
 
 # 영상 전체를 다운로드해서 자막 입히기
-python zitat.py "https://youtu.be/j190mwiVlwA"
+python zitat.py --no-review "https://youtu.be/j190mwiVlwA" 
 
 # 중간 파일 확인하면서 디버깅
 python zitat.py "https://youtu.be/j190mwiVlwA" -t 30 --keep-tmp
