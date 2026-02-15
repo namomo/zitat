@@ -10,6 +10,18 @@ import sys
 import tempfile
 
 
+def step_export_sidecar(clip_path, srt_path, output_video_path):
+    """Export video and sidecar .srt with same basename."""
+    base, _ = os.path.splitext(output_video_path)
+    output_srt_path = base + ".srt"
+
+    shutil.copy2(clip_path, output_video_path)
+    shutil.copy2(srt_path, output_srt_path)
+
+    print(f"  Video written to {output_video_path}")
+    print(f"  Subtitle written to {output_srt_path}")
+    return output_video_path, output_srt_path
+
 def load_dotenv():
     """Load .env file from the same directory as this script."""
     env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -156,6 +168,35 @@ def step_whisper(audio, tmpdir, whisper_bin, whisper_model):
     ], "transcription")
     return output_stem + ".srt"
 
+def step_translate_gemini(srt_path, lang, tmpdir, model="gemini-3-flash-preview"):
+    """Translate subtitles using Gemini API (Google GenAI SDK)."""
+    from google import genai
+
+    print("[4/6] Translating subtitles (Gemini API)...")
+    with open(srt_path, "r", encoding="utf-8") as f:
+        srt_content = f.read()
+
+    # Gemini API key is typically read from GEMINI_API_KEY env (per docs)
+    client = genai.Client()
+
+    prompt = (
+        f"다음 SRT 자막을 자연스러운 {lang}(으)로 번역해. "
+        "SRT 포맷과 타임코드는 그대로 유지하고 텍스트만 번역해. "
+        "SRT 내용만 출력하고 다른 설명은 붙이지 마.\n\n"
+        f"{srt_content}"
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+    )
+
+    translated = extract_srt(response.text or "")
+    output = os.path.join(tmpdir, "translated.srt")
+    with open(output, "w", encoding="utf-8") as f:
+        f.write(translated)
+    print(f"  Translated SRT written to {output}")
+    return output
 
 def step_translate(srt_path, lang, tmpdir):
     """Step 4: Translate subtitles using claude CLI."""
@@ -252,12 +293,14 @@ def main():
         source = step_download(args.url, tmpdir, args.start, args.duration)
         audio = step_audio(source, tmpdir)
         srt = step_whisper(audio, tmpdir, whisper_bin, whisper_model)
-        translated = step_translate(srt, args.lang, tmpdir)
+        # translated = step_translate(srt, args.lang, tmpdir)
+        translated = step_translate_gemini(srt, args.lang, tmpdir)
         if not args.no_review:
             step_review(translated)
         else:
             print("[5/6] Skipping subtitle review")
-        step_burn(source, translated, output_path, args.font, args.font_size)
+        # step_burn(source, translated, output_path, args.font, args.font_size)
+        step_export_sidecar(source, translated, output_path)
 
         print(f"\nDone! Output: {output_path}")
     finally:
@@ -265,7 +308,6 @@ def main():
             print(f"Temp files kept at: {tmpdir}")
         else:
             shutil.rmtree(tmpdir, ignore_errors=True)
-
 
 if __name__ == "__main__":
     main()
